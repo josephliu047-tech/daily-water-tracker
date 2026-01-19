@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>我的喝水小幫手</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>今日飲水進度</h1>
+        <div class="progress-container">
+            <div id="progress-bar">0%</div>
+        </div>
+        <p id="status">目前飲水量：0 / 2000 cc</p>
+        
+        <div class="buttons">
+            <button onclick="addWater(250)">＋250ml (小杯)</button>
+            <button onclick="addWater(500)">＋500ml (大杯)</button>
+            <button onclick="reset()">重設</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
