@@ -2,22 +2,61 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>我的喝水小幫手</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>飲水小助手 Pro - RWD 雲端版</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>今日飲水進度</h1>
+        <h1>飲水小助手 Pro</h1>
+        
+        <div class="profile-section">
+            <div class="input-group">
+                <input type="number" id="weightInput" placeholder="體重(kg)">
+                <button onclick="saveProfile()">儲存設定</button>
+            </div>
+            <div class="input-group">
+                <input type="text" id="scriptUrlInput" placeholder="貼上您的 Google 網址">
+            </div>
+            <p id="syncStatus">狀態：尚未同步</p>
+            <p id="dailyGoalText"></p>
+        </div>
+
         <div class="progress-container">
             <div id="progress-bar">0%</div>
         </div>
-        <p id="status">目前飲水量：0 / 2000 cc</p>
+        <p id="status">目前：0 / 2000 cc</p>
         
         <div class="buttons">
-            <button onclick="addWater(250)">＋250ml (小杯)</button>
-            <button onclick="addWater(500)">＋500ml (大杯)</button>
-            <button onclick="reset()">重設</button>
+            <div class="input-group">
+                <input type="number" id="customAmount" placeholder="輸入水量 (ml)" value="250">
+                <button id="btnAdd" onclick="addCustomWater()">加入水量</button>
+            </div>
+            <button class="btn-reset" onclick="resetToday()">重設今日紀錄</button>
         </div>
+
+        <div class="history-section">
+            <h3>今日飲水歷史</h3>
+            <ul id="historyList"></ul>
+        </div>
+
+        <hr>
+
+        <div class="chart-section">
+            <h3>過去七天統計</h3>
+            <div class="canvas-container">
+                <canvas id="waterChart"></canvas>
+            </div>
+        </div>
+<hr>
+<div class="monthly-report-section">
+    <h3>雲端月報表 (從 Sheets 讀取)</h3>
+    <button onclick="fetchMonthlyReport()" style="background: #27ae60; width: 100%; margin-bottom: 10px;">更新月報表數據</button>
+    <div id="monthlyStats" style="text-align: left; font-size: 14px; background: #f9f9f9; padding: 15px; border-radius: 10px; line-height: 1.8;">
+        請點擊上方按鈕讀取資料...
+    </div>
+</div>
     </div>
     <script src="script.js"></script>
 </body>

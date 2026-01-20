@@ -1,6 +1,111 @@
-body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f8ff; }
-.container { background: white; padding: 2rem; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 300px; }
-.progress-container { background: #eee; border-radius: 10px; height: 30px; margin: 20px 0; overflow: hidden; }
-#progress-bar { background: #3498db; height: 100%; width: 0%; color: white; line-height: 30px; transition: width 0.5s; }
-button { margin: 5px; padding: 10px; border: none; border-radius: 5px; background: #3498db; color: white; cursor: pointer; }
-button:hover { background: #2980b9; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body { 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+    display: flex; 
+    justify-content: center; 
+    background-color: #f0f2f5; 
+    margin: 0; 
+    padding: 10px; 
+}
+
+.container { 
+    background: white; 
+    padding: 20px; 
+    border-radius: 20px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+    width: 100%; 
+    max-width: 500px; 
+}
+
+h1 { color: #2c3e50; font-size: 1.8rem; margin-bottom: 20px; }
+
+/* 響應式輸入群組 */
+.input-group { 
+    display: flex; 
+    gap: 8px; 
+    margin-bottom: 10px; 
+    flex-wrap: wrap; 
+}
+
+input { 
+    flex: 1; 
+    min-width: 120px; 
+    padding: 12px; 
+    border: 1px solid #ddd; 
+    border-radius: 10px; 
+    font-size: 16px; /* 防止 iOS 自動放大 */
+    outline: none;
+}
+
+button { 
+    background: #3498db; 
+    color: white; 
+    border: none; 
+    padding: 12px 20px; 
+    border-radius: 10px; 
+    cursor: pointer; 
+    font-weight: bold;
+    flex-grow: 1;
+}
+
+button:active { transform: scale(0.98); }
+
+.profile-section { 
+    background: #f8f9fa; 
+    padding: 15px; 
+    border-radius: 15px; 
+    margin-bottom: 20px; 
+    text-align: left; 
+}
+
+.progress-container { 
+    background: #e9ecef; 
+    border-radius: 15px; 
+    height: 30px; 
+    margin: 20px 0; 
+    overflow: hidden; 
+}
+
+#progress-bar { 
+    background: linear-gradient(90deg, #3498db, #2ecc71); 
+    height: 100%; 
+    width: 0%; 
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); 
+    color: white; 
+    line-height: 30px; 
+    font-size: 14px;
+}
+
+.btn-reset { 
+    background: #ecf0f1; 
+    color: #7f8c8d; 
+    margin-top: 10px; 
+    width: 100%;
+}
+
+.history-item { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 12px 5px; 
+    border-bottom: 1px solid #f1f1f1; 
+}
+
+.history-actions button { 
+    padding: 5px 10px; 
+    font-size: 12px; 
+    background: #fff; 
+    border: 1px solid #ddd; 
+    color: #666; 
+    margin-left: 5px;
+    width: auto;
+}
+
+.canvas-container { position: relative; height: 250px; width: 100%; }
+
+/* 手機版微調 */
+@media (max-width: 400px) {
+    h1 { font-size: 1.5rem; }
+    input, button { font-size: 14px; }
+}
