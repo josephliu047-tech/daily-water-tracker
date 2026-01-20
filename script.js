@@ -1,203 +1,168 @@
+// ⚠️ 請務必替換為你的網址
+
+const API_URL = "https://script.google.com/macros/s/AKfycbzvVIscVr5OZCbTFK3htKZnqhw4Qxyj4U2W6XPltmD-aCXNVksCQ0j7H4hk1Yfs8fHl/exec"; 
+// 您的GAS部署網址 請在此貼上網址
+
+
 let records = JSON.parse(localStorage.getItem('waterRecords')) || [];
-let goal = parseInt(localStorage.getItem('dailyGoal')) || 2000;
-let googleScriptUrl = localStorage.getItem('googleScriptUrl') || "";
+let weight = localStorage.getItem('userWeight') || 80;
+let goal = weight * 30;
 let waterChartInstance;
 
-// 初始化頁面
-window.onload = () => {
-    document.getElementById('weightInput').value = localStorage.getItem('userWeight') || "";
-    document.getElementById('scriptUrlInput').value = googleScriptUrl;
+// Debug 日誌函式
+function logDebug(msg, type = 'info') {
+    const logs = document.getElementById('debugLogs');
+    const now = new Date().toLocaleTimeString();
+    let color = "#00ff00"; // 預設綠色
+    if (type === 'error') color = "#ff4757"; // 錯誤紅色
+    if (type === 'warn') color = "#ffa502";  // 警告橘色
+    
+    logs.innerHTML += `<div style="color:${color}">[${now}] ${msg}</div>`;
+    logs.parentElement.scrollTop = logs.parentElement.scrollHeight; // 自動捲動
+}
+
+
+window.onload = async () => {
+    document.getElementById('weightInput').value = weight;
     updateUI();
     renderChart();
+    
+    logDebug("🚀 系統啟動，嘗試建立與雲端的安全連線...");
+    
+    try {
+        // 使用 no-cors 雖然拿不到內容，但可以確認網址是否通暢
+        await fetch(API_URL, { mode: 'no-cors' });
+        logDebug("📡 連線測試：GAS 伺服器已回應。");
+        
+        // 嘗試正式讀取身份（若失敗則顯示手動授權提醒）
+        const res = await fetch(API_URL);
+        const json = await res.json();
+        
+        if (json.detected_email) {
+            logDebug(`✅ 識別身份: ${json.detected_email}`, 'success');
+            logDebug(`📁 雲端檔案: ${json.fileName}`, 'success');
+        }
+    } catch (e) {
+        logDebug("⚠️ 診斷提示：瀏覽器阻擋了身分讀取 (CORS)。", 'warn');
+        logDebug("💡 只要您手動開啟過 API 網址並看到 JSON，寫入功能即不受影響。", 'info');
+    }
 };
 
 function saveProfile() {
-    const weight = document.getElementById('weightInput').value;
-    const url = document.getElementById('scriptUrlInput').value.trim();
-    if (weight > 0) {
+    const w = document.getElementById('weightInput').value;
+    if (w > 0) {
+        weight = w;
         goal = weight * 30;
-        localStorage.setItem('dailyGoal', goal);
         localStorage.setItem('userWeight', weight);
+        updateUI();
+        renderChart();
+        logDebug(`體重更新: ${weight}kg, 目標: ${goal}cc`);
     }
-    googleScriptUrl = url;
-    localStorage.setItem('googleScriptUrl', url);
-    updateUI();
-    renderChart();
-    alert("設定已儲存！");
 }
 
-function addCustomWater() {
-    const amount = parseInt(document.getElementById('customAmount').value);
-    if (!amount || amount <= 0) return alert("請輸入正確的水量");
+
+async function addCustomWater() {
+    const amount = document.getElementById('customAmount').value;
     
-    const now = new Date();
-    const newRecord = {
-        id: Date.now(),
-        time: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}),
-        date: now.toLocaleDateString(),
-        amount: amount
-    };
-    records.push(newRecord);
-    saveAndRefresh(newRecord);
-}
+    // 診斷點 1：確認函式有被觸發
+    console.log("按鈕已按下，準備傳送量：", amount);
+    logDebug("📡 準備呼叫 API...");
 
-function deleteRecord(id) {
-    if (confirm("確定刪除此筆紀錄？")) {
-        records = records.filter(r => r.id !== id);
-        saveAndRefresh();
+    if (!API_URL || API_URL.includes("您的GAS部署網址")) {
+        alert("錯誤：API_URL 尚未設定正確！");
+        return;
+    }
+
+    try {
+        // 診斷點 2：嘗試發送
+        const response = await fetch(API_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({
+                date: new Date().toLocaleDateString(),
+                time: new Date().toLocaleTimeString(),
+                amount: amount
+            })
+        });
+
+        logDebug("🚀 請求已送出，請檢查 GAS 執行項目");
+        
+        // 更新 UI
+        records.push({ date: new Date().toLocaleDateString(), amount: parseInt(amount), time: new Date().toLocaleTimeString() });
+        localStorage.setItem('waterRecords', JSON.stringify(records));
+        updateUI();
+        if (window.renderChart) renderChart();
+
+    } catch (e) {
+        logDebug("❌ 發送失敗：" + e.message, "error");
+        console.error("Fetch Error:", e);
     }
 }
 
-function editRecord(id) {
-    const record = records.find(r => r.id === id);
-    const newAmount = prompt("修改水量 (ml):", record.amount);
-    if (newAmount && !isNaN(newAmount) && newAmount > 0) {
-        record.amount = parseInt(newAmount);
-        saveAndRefresh();
+async function fetchMonthlyReport() {
+    const statsDiv = document.getElementById('monthlyStats');
+    statsDiv.innerHTML = "正在連線雲端...";
+    logDebug("正在讀取雲端報表...");
+    
+    try {
+        const res = await fetch(API_URL);
+        const json = await res.json(); // 現在回傳的是一個物件 { cloudData: [...] }
+        
+        const data = json.cloudData || [];
+        const total = data.reduce((s, r) => s + (parseInt(r.amount) || 0), 0);
+        
+        statsDiv.innerHTML = `雲端總累計飲水量：<strong>${total} cc</strong>`;
+        logDebug(`✅ 讀取成功！雲端共有 ${data.length} 筆紀錄`);
+    } catch (e) {
+        statsDiv.innerHTML = "讀取失敗";
+        logDebug(`❌ 讀取失敗: ${e.message}`, 'error');
     }
 }
 
-function saveAndRefresh(syncData = null) {
-    localStorage.setItem('waterRecords', JSON.stringify(records));
-    updateUI();
-    renderChart();
-    if (syncData && googleScriptUrl) syncToGoogleSheets(syncData);
-}
-
-function syncToGoogleSheets(data) {
-    const statusTag = document.getElementById('syncStatus');
-    statusTag.innerText = "狀態：同步中...";
-    fetch(googleScriptUrl, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-    })
-    .then(() => {
-        statusTag.innerText = "狀態：已同步 ✅";
-        statusTag.style.color = "#2ecc71";
-    })
-    .catch(() => {
-        statusTag.innerText = "狀態：同步失敗 ❌";
-        statusTag.style.color = "#e74c3c";
-    });
-}
-
+// updateUI, renderChart, resetToday 等函式內容與 v2 相同，保持不變...
 function updateUI() {
     const today = new Date().toLocaleDateString();
     const todayRecords = records.filter(r => r.date === today);
-    const totalToday = todayRecords.reduce((sum, r) => sum + r.amount, 0);
-    
-    const percentage = Math.min((totalToday / goal) * 100, 100);
-    const bar = document.getElementById('progress-bar');
-    bar.style.width = percentage + '%';
-    bar.innerText = Math.floor(percentage) + '%';
-    
-    document.getElementById('status').innerText = `目前：${totalToday} / ${goal} cc`;
+    const total = todayRecords.reduce((s, r) => s + r.amount, 0);
     document.getElementById('dailyGoalText').innerText = `每日目標：${goal} cc`;
-
-    const list = document.getElementById('historyList');
-    list.innerHTML = '';
-    [...todayRecords].reverse().forEach(r => {
-        const li = document.createElement('li');
-        li.className = 'history-item';
-        li.innerHTML = `
-            <span>${r.time} - <strong>${r.amount}ml</strong></span>
-            <div class="history-actions">
-                <button onclick="editRecord(${r.id})">改</button>
-                <button onclick="deleteRecord(${r.id})">刪</button>
-            </div>
-        `;
-        list.appendChild(li);
-    });
+    document.getElementById('status').innerText = `目前：${total} / ${goal} cc`;
+    document.getElementById('historyList').innerHTML = todayRecords.reverse().slice(0, 5).map(r => `<li>${r.time} - ${r.amount}ml</li>`).join('');
 }
 
 function renderChart() {
     const ctx = document.getElementById('waterChart').getContext('2d');
-    const last7Days = [];
+    const labels = []; const data = [];
     for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        last7Days.push(d.toLocaleDateString());
+        const d = new Date(); d.setDate(d.getDate() - i);
+        labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+        const dateStr = d.toLocaleDateString();
+        data.push(records.filter(r => r.date === dateStr).reduce((s, r) => s + r.amount, 0));
     }
-
-    const dailyData = last7Days.map(date => 
-        records.filter(r => r.date === date).reduce((sum, r) => sum + r.amount, 0)
-    );
-
     if (waterChartInstance) waterChartInstance.destroy();
     waterChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: last7Days.map(d => d.split('/').slice(1,3).join('/')),
-            datasets: [{
-                label: '飲水量',
-                data: dailyData,
-                backgroundColor: 'rgba(52, 152, 219, 0.6)',
-                borderRadius: 5
-            }, {
-                label: '目標',
-                data: Array(7).fill(goal),
-                type: 'line',
-                borderColor: '#e74c3c',
-                pointRadius: 0,
-                borderDash: [5, 5]
-            }]
+            labels: labels,
+            datasets: [
+                { label: 'ml', data: data, backgroundColor: '#4285f4', barThickness: 15 },
+                { label: '目標', data: Array(7).fill(goal), type: 'line', borderColor: '#ea4335', borderDash: [5, 5], pointRadius: 0, fill: false }
+            ]
         },
-        options: { 
-            responsive: true, 
-            maintainAspectRatio: false,
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, max: Math.max(goal + 500, 3000) } },
             plugins: { legend: { display: false } }
         }
     });
 }
 
 function resetToday() {
-    if(confirm("確定清空今日紀錄？")) {
+    if (confirm("確定清空本地紀錄？")) {
         const today = new Date().toLocaleDateString();
         records = records.filter(r => r.date !== today);
-        saveAndRefresh();
-    }
-}
-
-async function fetchMonthlyReport() {
-    if (!googleScriptUrl) return alert("請先設定 Google 網址！");
-    
-    const statsDiv = document.getElementById('monthlyStats');
-    statsDiv.innerHTML = "正在從雲端抓取資料...";
-
-    try {
-        // 發送 GET 請求讀取資料
-        const response = await fetch(googleScriptUrl);
-        const cloudData = await response.json();
-        
-        const now = new Date();
-        const thisMonth = now.getMonth() + 1;
-        const thisYear = now.getFullYear();
-
-        let monthlyTotal = 0;
-        let daysDrank = new Set(); // 用來計算這個月有幾天有喝水
-
-        cloudData.forEach(item => {
-            const d = new Date(item.date);
-            if (d.getFullYear() === thisYear && (d.getMonth() + 1) === thisMonth) {
-                monthlyTotal += parseInt(item.amount);
-                daysDrank.add(item.date);
-            }
-        });
-
-        const avg = daysDrank.size > 0 ? Math.round(monthlyTotal / daysDrank.size) : 0;
-
-        statsDiv.innerHTML = `
-            <strong>📅 ${thisYear}年 ${thisMonth}月 統計</strong><br>
-            累積總飲水量：${monthlyTotal} cc<br>
-            本月記錄天數：${daysDrank.size} 天<br>
-            日平均飲水量：${avg} cc / 天<br>
-            <small style="color: #888;">* 數據來自您的 Google Sheets</small>
-        `;
-
-    } catch (err) {
-        console.error(err);
-        statsDiv.innerHTML = "讀取失敗，請確認 Google Script 部署權限是否設為「所有人」。";
+        localStorage.setItem('waterRecords', JSON.stringify(records));
+        updateUI(); renderChart();
+        logDebug("🗑️ 本地紀錄已重設");
     }
 }
