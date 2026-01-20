@@ -40,6 +40,42 @@ button { padding: 10px; background: #007bff; color: white; border: none; border-
 .chart-container { height: 300px; width: 100%; }
 .btn-report { width: 100%; background: #28a745; margin-bottom: 10px; }
 
+/* 快速按鈕容器 */
+.quick-add-container {
+    padding: 5px 0;
+}
+
+/* 快速按鈕基本樣式 */
+.btn-quick {
+    background-color: #f8f9fa; /* 淺灰色背景 */
+    border: 1px solid #dee2e6;
+    color: #495057;
+    padding: 8px 16px;
+    border-radius: 20px; /* 圓角膠囊型 */
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1; /* 讓三個按鈕等寬 */
+    max-width: 100px;
+}
+
+/* 點擊時的視覺回饋 */
+.btn-quick:active {
+    background-color: #4285f4; /* 點擊時變藍色 */
+    color: white;
+    border-color: #4285f4;
+    transform: scale(0.9); /* 按下去會縮小一點點 */
+}
+
+/* 如果是電腦端，滑鼠移上去的效果 */
+@media (hover: hover) {
+    .btn-quick:hover {
+        background-color: #e9ecef;
+        border-color: #adb5bd;
+    }
+}
+
 #historyList { list-style: none; padding: 0; }
 
 /* #historyList li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }

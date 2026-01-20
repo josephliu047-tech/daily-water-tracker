@@ -74,6 +74,42 @@ function saveProfile() {
 
 // === 3. 飲水紀錄核心功能 (新增/刪除/清空) ===
 
+// 快速加入飲水函式
+async function quickAddWater(amount) {
+    // 建立新紀錄物件
+    const newRecord = { 
+        id: Date.now(), 
+        date: new Date().toLocaleDateString('zh-TW'), 
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), 
+        amount: amount 
+    };
+
+    // 1. 本地立即反應 (體驗最順暢)
+    records.push(newRecord);
+    localStorage.setItem('waterRecords', JSON.stringify(records));
+    updateUI();
+    renderChart();
+
+    // 提示使用者已加入
+    const originalStatus = document.getElementById('syncStatus').innerText;
+    document.getElementById('syncStatus').innerText = `狀態：已自動加入 ${amount}ml...`;
+
+    // 2. 同步到雲端
+    try {
+        await fetch(API_URL, { 
+            method: "POST", 
+            mode: "no-cors", 
+            body: JSON.stringify(newRecord) 
+        });
+        setTimeout(() => {
+            document.getElementById('syncStatus').innerText = "狀態：雲端同步完成 ✅";
+        }, 1000);
+    } catch (e) { 
+        console.error("快速加入同步失敗:", e);
+        document.getElementById('syncStatus').innerText = "狀態：雲端同步失敗 ❌";
+    }
+}
+
 // 加入飲水 (同步雲端)
 async function addCustomWater() {
     const amountInput = document.getElementById('customAmount');
