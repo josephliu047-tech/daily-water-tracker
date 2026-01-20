@@ -11,12 +11,56 @@ let waterChartInstance;   // 週統計圖表實例
 let monthlyChartInstance; // 月統計圖表實例
 
 // === 2. 系統啟動與初始化 ===
-window.onload = () => {
+// === 修改後的初始化邏輯 ===
+window.onload = async () => {
+    // 1. 先讀取本地體重設定
     document.getElementById('weightInput').value = weight;
-    logDebug("🚀 系統啟動，載入本地數據...");
+    
+    // 2. 顯示讀取狀態
+    document.getElementById('syncStatus').innerText = "狀態：正在同步雲端資料... 🔄";
+    
+    // 3. 核心功能：從雲端抓取最新資料
+    await syncWithCloud();
+    
+    // 4. 更新 UI 與圖表
     updateUI();
     renderChart();
 };
+
+// 新增：從雲端同步資料的函式
+async function syncWithCloud() {
+    try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        
+        if (data.cloudData && data.cloudData.length > 0) {
+            records = data.cloudData.map(r => {
+                // 修正：處理 Google Sheet 傳來的日期
+                let dateStr;
+                const d = new Date(r.date);
+                
+                // 如果年份是 1899，代表它是解析錯誤，強制使用今天的日期或維持原格式
+                if (d.getFullYear() <= 1900) {
+                    dateStr = new Date().toLocaleDateString('zh-TW');
+                } else {
+                    dateStr = d.toLocaleDateString('zh-TW');
+                }
+
+                return {
+                    id: r.id,
+                    date: dateStr,
+                    time: r.time, // 時間直接使用 GAS 傳回的字串
+                    amount: parseInt(r.amount)
+                };
+            });
+            
+            localStorage.setItem('waterRecords', JSON.stringify(records));
+            document.getElementById('syncStatus').innerText = "狀態：雲端同步完成 ✅";
+        }
+    } catch (e) {
+        console.error("同步失敗:", e);
+    }
+}
 
 // 儲存體重並計算目標
 function saveProfile() {
