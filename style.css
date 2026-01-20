@@ -45,11 +45,36 @@ button { padding: 10px; background: #007bff; color: white; border: none; border-
 /* #historyList li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
 
 /* 今日紀錄列表 - 緊湊版 */
+/* 今日紀錄列表 - 每一列的容器 */
 #historyList li {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 3px 0; /* 上下縮減到 3px，讓每一列更靠近 */
-    border-bottom: 1px solid #f0f0f0; /* 淺色的分割線 */
-    font-size: 15px; /* 稍微縮小字體也會看起來更精緻 */
+    padding: 3px 0; /* 維持您要求的緊湊間距 */
+    border-bottom: 1px solid #f0f0f0;
 }
+
+/* 包含 ✎ 與 ✕ 的按鈕容器 */
+.action-buttons {
+    display: flex; 
+    gap: 15px; /* 加大兩個按鈕之間的距離，防止誤觸 */
+}
+
+/* 統一調整 ✎ 與 ✕ 的大小 */
+.btn-action {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px; /* 加大點擊範圍 */
+    font-size: 24px; /* 從原本的 16px 加大到 24px */
+    line-height: 1;
+    transition: transform 0.1s ease;
+}
+
+/* 滑鼠點擊時的縮放效果（視覺回饋） */
+.btn-action:active {
+    transform: scale(1.2);
+}
+
+.btn-edit { color: #4285f4; }  /* 修改鈕為藍色 */
+.btn-delete { color: #e74c3c; } /* 刪除鈕為紅色 */
