@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>飲水小助手</title>
+    <title>飲水小助手 v3</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -13,12 +13,19 @@
         
         <div class="profile-section">
             <div class="input-group">
-                <input type="number" id="weightInput" placeholder="輸入體重 (kg)">
+                <input type="number" id="weightInput" placeholder="體重">
                 <button onclick="saveProfile()">儲存體重</button>
             </div>
-            <p id="dailyGoalText">每日目標：-- cc</p>
+            <p id="dailyGoalText">每日目標：2400 cc</p>
             <p id="syncStatus">狀態：準備就緒</p>
-            <p id="status">目前：0 / -- cc</p>
+        </div>
+
+        <div class="visual-progress">
+            <div id="waterBubble">
+                <div id="waterLevel"></div>
+                <div id="percentageText">0%</div>
+            </div>
+            <p id="status">目前：0 / 2400 cc</p>
         </div>
 
         <div class="input-group">
@@ -26,30 +33,31 @@
             <button onclick="addCustomWater()">加入飲水</button>
         </div>
 
-        <button class="btn-reset" onclick="resetToday()">清空今日紀錄</button>
-
         <div class="history-section">
-            <h3>今日紀錄</h3>
+            <div class="header-row">
+                <h3>今日紀錄</h3>
+                <button onclick="clearToday()" class="btn-clear">全部清空</button>
+            </div>
             <ul id="historyList"></ul>
         </div>
 
         <div class="chart-section">
             <h3>週統計圖表</h3>
-            <div class="chart-container" style="position: relative; height: 300px;">
+            <div class="chart-container">
                 <canvas id="waterChart"></canvas>
             </div>
         </div>
 
-        <div class="report-section">
-            <button onclick="fetchMonthlyReport()" class="btn-report">更新月報表數據</button>
-            <div id="monthlyStats">請點擊上方按鈕讀取資料...</div>
-        </div>
 
-<div id="debugConsole" style="margin-top:20px; padding:15px; background:#1e1e1e; color:#00ff00; font-family:monospace; font-size:11px; border-radius:10px; text-align:left; line-height:1.4; border: 1px solid #333;">
-            <div style="border-bottom:1px solid #444; margin-bottom:5px; font-weight:bold; color: #fab1a0;">🛠️ 系統診斷日誌 (Debug Log)</div>
-            <div id="debugLogs" style="max-height: 150px; overflow-y: auto;">等待系統初始化...</div>
-        </div>
+<div class="report-section">
+    <button onclick="fetchMonthlyReport()" class="btn-report">更新月報表數據</button>
+    <div id="monthlyChartContainer" style="height: 250px; margin-top: 15px; display: none;">
+        <canvas id="monthlyWaterChart"></canvas>
+    </div>
+    <div id="monthlyStats" style="margin-top: 10px; text-align: center;">請點擊上方按鈕讀取資料...</div>
+</div>
 
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
