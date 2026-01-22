@@ -11,15 +11,14 @@ let waterChartInstance;   // 週統計圖表實例
 let monthlyChartInstance; // 月統計圖表實例
 
 // === 2. 系統啟動與初始化 ===
-// === 修改後的初始化邏輯 ===
 window.onload = async () => {
-    // 1. 先讀取本地體重設定
+    // 1. 讀取本地體重設定
     document.getElementById('weightInput').value = weight;
     
-    // 2. 顯示讀取狀態
+    // 2. 顯示同步狀態
     document.getElementById('syncStatus').innerText = "狀態：正在同步雲端資料... 🔄";
     
-    // 3. 核心功能：從雲端抓取最新資料
+    // 3. 從雲端抓取最新資料並更新帳號資訊
     await syncWithCloud();
     
     // 4. 更新 UI 與圖表
@@ -27,56 +26,75 @@ window.onload = async () => {
     renderChart();
 };
 
-// 新增：從雲端同步資料的函式
+// 核心功能：從雲端同步資料與帳號
 async function syncWithCloud() {
     try {
         const response = await fetch(API_URL);
         const data = await response.json();
         
+        // 處理帳號顯示 (去掉 @gmail.com)
+        if (data.userEmail) {
+            const accountName = data.userEmail.split('@')[0];
+            document.getElementById('userAccount').innerText = accountName;
+        }
+
         if (data.cloudData && data.cloudData.length > 0) {
             records = data.cloudData.map(r => {
-                // 修正：處理 Google Sheet 傳來的日期
                 let dateStr;
                 const d = new Date(r.date);
-                
-                // 如果年份是 1899，代表它是解析錯誤，強制使用今天的日期或維持原格式
-                if (d.getFullYear() <= 1900) {
+                // 修正時區偏移與 1899 年問題
+                if (isNaN(d.getTime()) || d.getFullYear() <= 1900) {
                     dateStr = new Date().toLocaleDateString('zh-TW');
                 } else {
                     dateStr = d.toLocaleDateString('zh-TW');
                 }
-
                 return {
                     id: r.id,
                     date: dateStr,
-                    time: r.time, // 時間直接使用 GAS 傳回的字串
+                    time: r.time,
                     amount: parseInt(r.amount)
                 };
             });
             
             localStorage.setItem('waterRecords', JSON.stringify(records));
             document.getElementById('syncStatus').innerText = "狀態：雲端同步完成 ✅";
+        } else {
+            document.getElementById('syncStatus').innerText = "狀態：雲端目前無紀錄";
         }
     } catch (e) {
         console.error("同步失敗:", e);
+        document.getElementById('userAccount').innerText = "訪客";
+        document.getElementById('syncStatus').innerText = "狀態：僅使用本地模式";
     }
 }
 
-// 儲存體重並計算目標
+// === 3. 飲水操作功能 ===
+
+// 儲存設定
 function saveProfile() {
     weight = document.getElementById('weightInput').value || 80;
     goal = weight * 30;
     localStorage.setItem('userWeight', weight);
     updateUI();
     renderChart();
-    logDebug(`⚖️ 體重已更新：${weight}kg，目標：${goal}cc`);
+    alert("設定已儲存！");
 }
 
-// === 3. 飲水紀錄核心功能 (新增/刪除/清空) ===
+// 加入飲水 (自定義)
+async function addCustomWater() {
+    const amountInput = document.getElementById('customAmount');
+    const amount = parseInt(amountInput.value);
+    if (!amount) return;
+    await processAddWater(amount);
+}
 
-// 快速加入飲水函式
+// 快速加入飲水 (300, 500, 700)
 async function quickAddWater(amount) {
-    // 建立新紀錄物件
+    await processAddWater(amount);
+}
+
+// 處理新增邏輯
+async function processAddWater(amount) {
     const newRecord = { 
         id: Date.now(), 
         date: new Date().toLocaleDateString('zh-TW'), 
@@ -84,197 +102,101 @@ async function quickAddWater(amount) {
         amount: amount 
     };
 
-    // 1. 本地立即反應 (體驗最順暢)
     records.push(newRecord);
     localStorage.setItem('waterRecords', JSON.stringify(records));
     updateUI();
     renderChart();
 
-    // 提示使用者已加入
-    const originalStatus = document.getElementById('syncStatus').innerText;
-    document.getElementById('syncStatus').innerText = `狀態：已自動加入 ${amount}ml...`;
-
-    // 2. 同步到雲端
     try {
         await fetch(API_URL, { 
             method: "POST", 
             mode: "no-cors", 
             body: JSON.stringify(newRecord) 
         });
-        setTimeout(() => {
-            document.getElementById('syncStatus').innerText = "狀態：雲端同步完成 ✅";
-        }, 1000);
-    } catch (e) { 
-        console.error("快速加入同步失敗:", e);
-        document.getElementById('syncStatus').innerText = "狀態：雲端同步失敗 ❌";
-    }
+    } catch (e) { console.error(e); }
 }
 
-// 加入飲水 (同步雲端)
-async function addCustomWater() {
-    const amountInput = document.getElementById('customAmount');
-    const amount = parseInt(amountInput.value);
-    if (!amount) return;
-
-    const newRecord = {
-        id: Date.now(), // 唯一 ID 用於刪除/修改
-        date: new Date().toLocaleDateString('zh-TW'),
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-        amount: amount
-    };
-
-    // 更新本地
-    records.push(newRecord);
-    localStorage.setItem('waterRecords', JSON.stringify(records));
-    updateUI();
-    renderChart();
-
-    logDebug(`💧 正在同步 ${amount}ml 到雲端...`);
-    try {
-        await fetch(API_URL, {
-            method: "POST",
-            mode: "no-cors",
-            body: JSON.stringify(newRecord)
-        });
-        document.getElementById('syncStatus').innerText = "狀態：已同步 ✅";
-    } catch (e) {
-        logDebug("❌ 同步失敗", "error");
-    }
-}
-
-// 刪除單筆紀錄 (連動雲端)
+// 刪除單筆
 async function deleteRecord(id) {
-    if (!confirm("確定要刪除此筆紀錄並同步雲端嗎？")) return;
-
+    if (!confirm("確定要刪除此筆紀錄嗎？")) return;
     records = records.filter(r => r.id !== id);
     localStorage.setItem('waterRecords', JSON.stringify(records));
     updateUI();
     renderChart();
-
-    try {
-        await fetch(API_URL, {
-            method: "POST",
-            mode: "no-cors",
-            body: JSON.stringify({ action: "delete", id: id })
-        });
-        logDebug("🗑️ 雲端已同步刪除");
-    } catch (e) {
-        logDebug("❌ 雲端刪除失敗", "error");
-    }
-}
-
-async function editRecord(id, oldAmount) {
-    const newAmount = prompt("請輸入修改後的飲水量 (ml):", oldAmount);
-    
-    // 如果使用者取消或輸入無效，則不動作
-    if (newAmount === null || newAmount === "" || isNaN(newAmount)) return;
-
-    const parsedAmount = parseInt(newAmount);
-
-    // 1. 【核心修正】同步更新本地資料陣列
-    records = records.map(r => r.id === id ? { ...r, amount: parsedAmount } : r);
-    localStorage.setItem('waterRecords', JSON.stringify(records));
-
-    // 2. 【核心修正】立即重新渲染所有介面組件 (水球、文字、週圖表)
-    updateUI();
-    renderChart();
-
-    logDebug(`✏️ 正在同步修改到雲端...`);
     
     try {
-        // 發送異動請求給 GAS
-        await fetch(API_URL, {
-            method: "POST",
-            mode: "no-cors",
-            body: JSON.stringify({ 
-                action: "edit", 
-                id: id, 
-                newAmount: parsedAmount 
-            })
+        await fetch(API_URL, { 
+            method: "POST", 
+            mode: "no-cors", 
+            body: JSON.stringify({ action: "delete", id: id }) 
         });
-        document.getElementById('syncStatus').innerText = "狀態：雲端已同步 ✅";
-    } catch (e) {
-        logDebug("❌ 雲端同步失敗，請檢查連線", "error");
-    }
+    } catch (e) { console.error(e); }
 }
 
-// 清空今日紀錄 (連動雲端)
+// 清空今日
 async function clearToday() {
-    if(!confirm("確定清空今日所有紀錄？(雲端將同步刪除)")) return;
+    if (!confirm("確定要清空今日所有紀錄？(雲端將同步刪除)")) return;
     
     const now = new Date();
-    // 傳送 YYYY-MM-DD 這種標準格式最保險
-    const dateToSync = now.getFullYear() + "-" + (now.getMonth()+1) + "-" + now.getDate();
+    const todayStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`;
     const todayLocale = now.toLocaleDateString('zh-TW');
 
-    // 1. 本地立即反應
     records = records.filter(r => r.date !== todayLocale);
     localStorage.setItem('waterRecords', JSON.stringify(records));
     updateUI();
     renderChart();
 
-    // 2. 同步雲端
     try {
         await fetch(API_URL, { 
             method: "POST", 
             mode: "no-cors", 
-            body: JSON.stringify({ 
-                action: "clearToday", 
-                date: dateToSync  // 傳送標準格式
-            }) 
+            body: JSON.stringify({ action: "clearToday", date: todayStr }) 
         });
-        console.log("☁️ 雲端清空指令已送出");
-    } catch (e) { 
-        console.error("雲端同步失敗", e); 
-    }
+    } catch (e) { console.error(e); }
 }
 
-// === 4. UI 渲染與視覺效果 ===
+// === 4. UI 渲染功能 ===
 
 function updateUI() {
     const today = new Date().toLocaleDateString('zh-TW');
     const todayRecords = records.filter(r => r.date === today);
-    const total = todayRecords.reduce((s, r) => s + (parseInt(r.amount) || 0), 0);
-    
-    // 計算百分比
-    const percent = Math.round((total / goal) * 100);
-    
-    // 1. 更新水球高度與文字
-    document.getElementById('waterLevel').style.height = Math.min(percent, 100) + "%";
+    const total = todayRecords.reduce((sum, r) => sum + (parseInt(r.amount) || 0), 0);
+    const percent = Math.min(Math.round((total / goal) * 100), 100);
+
+    // 更新水球
+    document.getElementById('waterLevel').style.height = percent + "%";
     document.getElementById('percentageText').innerText = percent + "%";
     
-    // 2. 更新下方狀態文字 (關鍵修正)
+    // 更新文字
     document.getElementById('status').innerText = `目前：${total} / ${goal} cc`;
     document.getElementById('dailyGoalText').innerText = `每日目標：${goal} cc`;
 
-    // 3. 更新今日紀錄列表 (附帶刪除按鈕)
-    const list = document.getElementById('historyList');
-    list.innerHTML = todayRecords.slice().reverse().map(r => `
+    // 更新列表
+    const listElement = document.getElementById('historyList');
+    listElement.innerHTML = todayRecords.slice().reverse().map(r => `
         <li>
             <span>${r.time} - <strong>${r.amount}ml</strong></span>
-            <div style="display: flex; gap: 10px;">
-                <button onclick="editRecord(${r.id}, ${r.amount})" style="background:none; border:none; color:#4285f4; cursor:pointer;
-                padding:0;">✎</button>
-                <button onclick="deleteRecord(${r.id})" style="background:none; border:none; color:#e74c3c; cursor:pointer; padding:0;">✕</button>
-            </div>
+            <button onclick="deleteRecord(${r.id})" class="btn-action btn-delete">✕</button>
         </li>
     `).join('');
 }
 
-// === 5. 圖表製作 (週統計與月統計) ===
+// === 5. 圖表功能 (週/月) ===
 
-// 渲染週統計 (藍色)
 function renderChart() {
     const ctx = document.getElementById('waterChart').getContext('2d');
     const labels = [];
     const data = [];
-    
+
     for (let i = 6; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
         const dateStr = d.toLocaleDateString('zh-TW');
         labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
-        const dayTotal = records.filter(r => r.date === dateStr).reduce((s, r) => s + (parseInt(r.amount) || 0), 0);
+        
+        const dayTotal = records
+            .filter(r => r.date === dateStr)
+            .reduce((sum, r) => sum + (parseInt(r.amount) || 0), 0);
         data.push(dayTotal);
     }
 
@@ -283,77 +205,52 @@ function renderChart() {
         type: 'bar',
         data: {
             labels: labels,
-            datasets: [
-                { label: '飲水量', data: data, backgroundColor: '#4285f4', barThickness: 15 },
-                { label: '目標', data: Array(7).fill(goal), type: 'line', borderColor: 'red', borderDash: [5, 5], pointRadius: 0, fill: false }
-            ]
+            datasets: [{
+                label: '飲水量 (ml)',
+                data: data,
+                backgroundColor: '#4285f4',
+                borderRadius: 5
+            }]
         },
-        options: { 
-            responsive: true, 
-            maintainAspectRatio: false, 
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true, max: Math.max(goal + 500, 3000) } }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
         }
     });
 }
 
-// 獲取月報表並繪製長條圖 (綠色)
+// 獲取月報表
 async function fetchMonthlyReport() {
     const statsDiv = document.getElementById('monthlyStats');
-    const chartContainer = document.getElementById('monthlyChartContainer');
-    statsDiv.innerHTML = "正在讀取雲端歷史資料...";
-
+    statsDiv.innerHTML = "正在計算月統計資料... ⏳";
+    
     try {
-        const res = await fetch(API_URL);
-        const json = await res.json();
-        const cloudData = json.cloudData || [];
+        const response = await fetch(API_URL);
+        const json = await response.json();
+        const cloudData = json.cloudData;
 
-        if (cloudData.length === 0) {
-            statsDiv.innerHTML = "雲端尚無紀錄";
-            return;
-        }
-
-        // 1. 按月份加總
         const monthlyMap = {};
         cloudData.forEach(r => {
-            const dateObj = new Date(r.date);
-            if (!isNaN(dateObj)) {
-                const year = dateObj.getFullYear();
-                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                const monthKey = `${year}/${month}`;
-                monthlyMap[monthKey] = (monthlyMap[monthKey] || 0) + (parseInt(r.amount) || 0);
-            }
+            const d = new Date(r.date);
+            if (isNaN(d.getTime()) || d.getFullYear() <= 1900) return;
+            const monthKey = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+            monthlyMap[monthKey] = (monthlyMap[monthKey] || 0) + parseInt(r.amount);
         });
 
-        // 2. 排序：由遠到近
-        let sortedMonthKeys = Object.keys(monthlyMap).sort((a, b) => {
-            return new Date(a) - new Date(b); 
-        });
+        const sortedMonthKeys = Object.keys(monthlyMap).sort().slice(-12);
+        const chartValues = sortedMonthKeys.map(k => monthlyMap[k]);
 
-        // 3. 【關鍵修正】：僅保留最後 12 個月 (由遠到近)
-        if (sortedMonthKeys.length > 12) {
-            sortedMonthKeys = sortedMonthKeys.slice(-12);
-        }
-
-        const chartValues = sortedMonthKeys.map(m => monthlyMap[m]);
-
-        // 4. 顯示圖表
-        chartContainer.style.display = "block";
+        document.getElementById('monthlyChartContainer').style.display = "block";
         renderMonthlyChart(sortedMonthKeys, chartValues);
 
-        // 5. 更新文字顯示 (顯示當月進度)
-        const today = new Date();
-        const currentMonthKey = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}`;
-        const currentMonthTotal = monthlyMap[currentMonthKey] || 0;
-        
-        statsDiv.innerHTML = `本月 (${currentMonthKey}) 累計：<strong>${currentMonthTotal} cc</strong><br><small>(顯示最近 12 個月紀錄)</small>`;
+        const thisMonth = sortedMonthKeys[sortedMonthKeys.length - 1];
+        statsDiv.innerHTML = `本月 (${thisMonth}) 累計：<strong>${monthlyMap[thisMonth] || 0} cc</strong>`;
         
     } catch (e) {
-        console.error(e);
-        statsDiv.innerHTML = "讀取失敗，請確認網路連線";
+        statsDiv.innerHTML = "讀取失敗";
     }
 }
-
 
 function renderMonthlyChart(labels, data) {
     const ctx = document.getElementById('monthlyWaterChart').getContext('2d');
@@ -364,23 +261,11 @@ function renderMonthlyChart(labels, data) {
         data: {
             labels: labels,
             datasets: [{
-                label: '每月飲水量 (ml)',
+                label: '每月飲水',
                 data: data,
-                backgroundColor: 'rgba(40, 167, 69, 0.7)',
-                borderColor: '#28a745',
-                borderWidth: 1
+                backgroundColor: '#34a853'
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } }
-        }
+        options: { responsive: true, maintainAspectRatio: false }
     });
-}
-
-// 輔助函式：日誌顯示
-function logDebug(msg, type = 'info') {
-    const consoleDiv = document.getElementById('monthlyStats');
-    console.log(`[${new Date().toLocaleTimeString()}] ${msg}`);
 }
