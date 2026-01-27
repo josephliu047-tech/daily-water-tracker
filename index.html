@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>飲水小助手 v7</title>
+    <title>飲水小助手 v7.1</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -40,7 +40,6 @@
                 <input type="number" id="customAmount" value="250">
                 <button onclick="addCustomWater()">加入飲水</button>
             </div>
-
             <div class="quick-add-container">
                 <button onclick="quickAddWater(300)" class="btn-quick">300ml</button>
                 <button onclick="quickAddWater(500)" class="btn-quick">500ml</button>
@@ -68,7 +67,7 @@
             <div id="monthlyChartContainer" class="chart-container" style="display: none; margin-top: 15px;">
                 <canvas id="monthlyWaterChart"></canvas>
             </div>
-            <div id="monthlyStats">請點擊按鈕讀取雲端近 90 天資料...</div>
+            <div id="monthlyStats">請點擊按鈕讀取雲端近 90 天歷史資料...</div>
         </div>
     </div>
     <script src="script.js"></script>

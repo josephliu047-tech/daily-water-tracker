@@ -151,9 +151,10 @@ function renderChart() {
 }
 
 // === 三個月趨勢報表 (折線圖) ===
+// 修正：邏輯改為 curr < today，即不包含今天
 async function fetchTrendReport() {
     const statsDiv = document.getElementById('monthlyStats');
-    statsDiv.innerHTML = "正在計算三個月每日趨勢... ⏳";
+    statsDiv.innerHTML = "正在計算三個月趨勢 (不含今日)... ⏳";
     
     try {
         const response = await fetch(API_URL);
@@ -161,9 +162,12 @@ async function fetchTrendReport() {
         const cloudData = json.cloudData;
 
         const now = new Date();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // 今日凌晨零點
+
         const threeMonthsAgo = new Date();
         threeMonthsAgo.setMonth(now.getMonth() - 3);
-        threeMonthsAgo.setHours(0,0,0,0);
+        threeMonthsAgo.setHours(0, 0, 0, 0);
 
         // 整理資料
         const dailyMap = {};
@@ -175,11 +179,13 @@ async function fetchTrendReport() {
             }
         });
 
-        // 建立連續的 90 天標籤
+        // 建立連續的標籤 (從 90 天前到 昨天)
         const labels = [];
         const data = [];
         let curr = new Date(threeMonthsAgo);
-        while (curr <= now) {
+        
+        // 修正處：curr < today (排除當天)
+        while (curr < today) {
             const dateStr = curr.toLocaleDateString('zh-TW');
             labels.push(`${curr.getMonth() + 1}/${curr.getDate()}`);
             data.push(dailyMap[dateStr] || 0);
@@ -189,9 +195,10 @@ async function fetchTrendReport() {
         document.getElementById('monthlyChartContainer').style.display = "block";
         renderTrendLineChart(labels, data);
 
-        const maxIntake = Math.max(...data);
-        statsDiv.innerHTML = `三個月內最高飲水：<strong>${maxIntake} cc</strong>`;
+        const avgIntake = data.length > 0 ? Math.round(data.reduce((a, b) => a + b) / data.length) : 0;
+        statsDiv.innerHTML = `過去 90 天 (不含今日) 平均：<strong>${avgIntake} cc</strong>`;
     } catch (e) {
+        console.error(e);
         statsDiv.innerHTML = "讀取失敗";
     }
 }
@@ -205,13 +212,13 @@ function renderTrendLineChart(labels, data) {
         data: {
             labels: labels,
             datasets: [{
-                label: '每日飲水量',
+                label: '每日飲水量趨勢',
                 data: data,
                 borderColor: '#34a853',
                 backgroundColor: 'rgba(52, 168, 83, 0.1)',
                 fill: true,
                 tension: 0.3,
-                pointRadius: 1 // 隱藏過小的點讓畫面乾淨
+                pointRadius: 1 
             }]
         },
         options: { 
@@ -221,7 +228,7 @@ function renderTrendLineChart(labels, data) {
                 x: {
                     ticks: {
                         autoSkip: true,
-                        maxTicksLimit: 10 // 自動跳略，讓 90 天標籤不擠爆
+                        maxTicksLimit: 10 
                     }
                 }
             }

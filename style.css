@@ -72,6 +72,7 @@ button { padding: 10px; background: #4285f4; color: white; border: none; border-
 .btn-quick {
     background: #f8f9fa; border: 1px solid #dee2e6; color: #495057;
     padding: 8px 12px; border-radius: 20px; flex: 1; font-size: 14px;
+    cursor: pointer;
 }
 .btn-quick:active { background: #4285f4; color: white; transform: scale(0.9); }
 
