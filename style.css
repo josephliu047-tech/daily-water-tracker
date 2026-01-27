@@ -1,6 +1,6 @@
-/* 基礎重設：確保內容由上而下垂直堆疊 */
+/* 基礎垂直佈局 */
 body { 
-    font-family: sans-serif; 
+    font-family: -apple-system, sans-serif; 
     display: flex; 
     justify-content: center; 
     background: #f4f7f9; 
@@ -8,12 +8,11 @@ body {
     padding: 20px; 
 }
 
-/* 核心容器 */
 .container { 
     width: 100%; 
     max-width: 400px; 
     display: flex; 
-    flex-direction: column; /* 強制垂直排列，防止元件橫向擠壓 */
+    flex-direction: column; 
     gap: 15px; 
     background: white;
     padding: 20px;
@@ -21,25 +20,36 @@ body {
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
-/* 標題與帳號資訊 */
+/* 標題列：垂直排列，讓帳號在標題下方 */
 .header-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     border-bottom: 2px solid #e3f2fd;
-    padding-bottom: 10px;
+    padding-bottom: 12px;
 }
-.header-container h1 { margin: 0; font-size: 22px; color: #333; }
+.header-container h1 { 
+    margin: 0; 
+    font-size: 24px; 
+    color: #333; 
+}
 #userInfo { 
+    margin-top: 5px;
     font-size: 14px; 
-    color: #4285f4; 
-    font-weight: bold; 
-    background: #f0f7ff;
-    padding: 4px 10px;
-    border-radius: 12px;
+    color: #666; 
+}
+#userAccount {
+    color: #4285f4;
+    font-weight: bold;
 }
 
-/* 水球視覺效果 */
+/* 狀態列 */
+.status-info-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #888;
+    margin-top: 5px;
+}
+
+/* 水球與視覺 */
 .visual-progress { text-align: center; }
 #waterBubble {
     width: 140px; height: 140px; border-radius: 50%; border: 4px solid #4285f4;
@@ -54,32 +64,24 @@ body {
     z-index: 10; font-size: 24px; font-weight: bold; color: #1565c0;
 }
 
-/* 快速按鈕 */
+/* 按鈕與快速鍵 */
+.input-group { display: flex; gap: 8px; }
+input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+button { padding: 10px; background: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
 .quick-add-container { display: flex; gap: 8px; justify-content: center; }
 .btn-quick {
-    background-color: #f8f9fa; border: 1px solid #dee2e6; color: #495057;
-    padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold;
-    cursor: pointer; transition: all 0.2s; flex: 1; max-width: 100px;
+    background: #f8f9fa; border: 1px solid #dee2e6; color: #495057;
+    padding: 8px 12px; border-radius: 20px; flex: 1; font-size: 14px;
 }
 .btn-quick:active { background: #4285f4; color: white; transform: scale(0.9); }
 
-/* 圖表容器：必須給定高度，否則 Canvas 不會顯示 */
-.chart-container { 
-    position: relative;
-    height: 250px; 
-    width: 100%; 
-    margin: 10px 0;
-}
+/* 圖表 */
+.chart-container { height: 250px; width: 100%; position: relative; }
+.btn-report { width: 100%; background: #28a745; margin-top: 10px; }
+#monthlyStats { margin-top: 10px; text-align: center; font-size: 14px; color: #666; }
 
-/* 紀錄清單 */
+/* 紀錄列表 */
 .header-row { display: flex; justify-content: space-between; align-items: center; }
-.btn-clear { background: none; border: none; color: #e74c3c; cursor: pointer; font-weight: bold; }
-#historyList { list-style: none; padding: 0; margin: 0; }
-#historyList li {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 3px 0; border-bottom: 1px solid #f0f0f0;
-}
-.input-group { display: flex; gap: 8px; }
-input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-button { padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-.btn-report { width: 100%; background: #28a745; margin-bottom: 10px; }
+.btn-clear { background: none; border: none; color: #e74c3c; cursor: pointer; }
+#historyList { list-style: none; padding: 0; }
+#historyList li { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #f0f0f0; }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>飲水小助手 v3</title>
+    <title>飲水小助手 v7</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -12,7 +12,7 @@
         <div class="header-container">
             <h1>飲水小助手</h1>
             <div id="userInfo">
-                👤 <span id="userAccount">載入中</span>
+                👤 帳號：<span id="userAccount">同步中...</span>
             </div>
         </div>
         
@@ -21,7 +21,7 @@
                 <input type="number" id="weightInput" placeholder="體重">
                 <button onclick="saveProfile()">儲存體重</button>
             </div>
-            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 14px;">
+            <div class="status-info-row">
                 <span id="dailyGoalText">每日目標：2400 cc</span>
                 <span id="syncStatus">狀態：準備就緒</span>
             </div>
@@ -64,11 +64,11 @@
         </div>
 
         <div class="report-section">
-            <button onclick="fetchMonthlyReport()" class="btn-report">更新月報表數據</button>
+            <button onclick="fetchTrendReport()" class="btn-report">更新三個月趨勢數據</button>
             <div id="monthlyChartContainer" class="chart-container" style="display: none; margin-top: 15px;">
                 <canvas id="monthlyWaterChart"></canvas>
             </div>
-            <div id="monthlyStats">請點擊上方按鈕讀取資料...</div>
+            <div id="monthlyStats">請點擊按鈕讀取雲端近 90 天資料...</div>
         </div>
     </div>
     <script src="script.js"></script>
